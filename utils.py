@@ -181,24 +181,57 @@ def encrypt_decrypt_video(key, video_path):
     outDecrypted.release()
 
 
+def encrypt_func_raw(key, normalized_original_values):
+    encrypted_values = []
+    c1_prime, c2_prime = key_generator(key)
+
+    for i in range(len(normalized_original_values)):
+        if i == 0:
+            temp_encrypted_value = encrypt_value(normalized_original_values[i], y1, y2, c1_prime, c2_prime)
+        elif i == 1:
+            temp_encrypted_value = encrypt_value(normalized_original_values[i], encrypted_values[i - 1], y1, c1_prime, c2_prime)
+        else:
+            temp_encrypted_value = encrypt_value(normalized_original_values[i], encrypted_values[i - 1], encrypted_values[i - 2], c1_prime, c2_prime)
+
+        encrypted_values.append(temp_encrypted_value)
+
+    return encrypted_values
+
+
+def decrypt_func_raw(key, normalized_encrypted_values):
+    decrypted_values = []
+    c1_prime, c2_prime = key_generator(key)
+
+    for i in range(len(normalized_encrypted_values)):
+        if i == 0:
+            temp_decrypted_value = decrypt_value(normalized_encrypted_values[i], y1, y2, c1_prime, c2_prime)
+        elif i == 1:
+            temp_decrypted_value = decrypt_value(normalized_encrypted_values[i], normalized_encrypted_values[i - 1], y1, c1_prime, c2_prime)
+        else:
+            temp_decrypted_value = decrypt_value(normalized_encrypted_values[i], normalized_encrypted_values[i - 1], normalized_encrypted_values[i - 2], c1_prime, c2_prime)
+
+        decrypted_values.append(temp_decrypted_value)
+
+    return decrypted_values
+
+
+
 def encrypt_decrypt_audio(key, audio_file_path):
     # Read the audio file using soundfile
     audio, samplerate = sf.read(audio_file_path)
 
-    encrypted_audio = encryptor(key, audio)
-
+    encrypted_audio = encrypt_func_raw(key, audio) 
+ 
     encrypted_audio_path = "audios/encrypted/audio_" + str(uuid.uuid4()) + ".wav"
-    encrypted_audio = np.array(encrypted_audio).astype(np.int16)  # Convert to numpy array before calling astype
     sf.write(encrypted_audio_path, encrypted_audio, samplerate)
 
-    decrypted_audio = decryptor(key, encrypted_audio)
-    decrypted_audio = np.array(decrypted_audio).astype(np.int16)  # Convert to numpy array before calling astype
-
+    decrypted_audio = decrypt_func_raw(key, encrypted_audio)
+ 
     decrypted_audio_path = "audios/decrypted/audio_" + str(uuid.uuid4()) + ".wav"
-    sf.write(decrypted_audio_path, decrypted_audio, samplerate)
+    sf.write(decrypted_audio_path, decrypted_audio, samplerate) 
 
     # Print the result
     print("Original Length Audio", len(audio))
     print("Encrypted Length Audio", len(encrypted_audio))
     print("Decrypted Length Audio", len(decrypted_audio))
-    return encrypted_audio, decrypted_audio
+    return encrypted_audio , decrypted_audio
