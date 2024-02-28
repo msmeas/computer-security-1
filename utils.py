@@ -106,7 +106,7 @@ def encrypt_text(key, original_text):
         encrypted_val = encrypt_value(norm_value, y1, y2, c1prime, c2prime)  # Encrypt normalized value
         encrypted_values.append(denormalized(encrypted_val))  # Denormalize and append
     # Convert encrypted values back to characters
-    encrypted_text = ''.join(chr(val % 128) for val in encrypted_values)
+    encrypted_text = ''.join(chr(val % 256) for val in encrypted_values)
     return encrypted_text
 
 # Decrypt function for text
@@ -119,7 +119,7 @@ def decrypt_text(key, encrypted_text):
         decrypted_val = decrypt_value(norm_value, y1, y2, c1prime, c2prime)  # Decrypt normalized value
         decrypted_values.append(denormalized(decrypted_val))  # Denormalize and append
     # Convert decrypted values back to characters
-    decrypted_text = ''.join(chr(val % 128) for val in decrypted_values)
+    decrypted_text = ''.join(chr(val % 256) for val in decrypted_values)
     return decrypted_text
 
 
@@ -181,17 +181,69 @@ def encrypt_decrypt_video(key, video_path):
     outDecrypted.release()
 
 
+def encrypt_func_raw(key, normalized_original_values): 
+    encrypted_values = [] 
+    c1Prime, c2Prime = key_generator(key) 
+    #First Index , using While True to organize variables
+    while True:
+        temp_encrypted_value = encrypt_value(normalized_original_values[0], y1, y2, c1Prime, c2Prime) 
+
+        # print("Encrypted: " + str(temp_denormalized_encrypted_value))
+        # print("Original: " + str(normalized_original_values[0])) 
+
+        encrypted_values.append(temp_encrypted_value)
+        break
+
+    #Second Index , using While True to organize variables
+    while True:
+        temp_encrypted_value = encrypt_value(normalized_original_values[1], encrypted_values[0], y1, c1Prime, c2Prime) 
+
+        # print("Encrypted: " + str(temp_denormalized_encrypted_value)) 
+        # print("Original: " + str(normalized_original_values[1])) 
+
+        encrypted_values.append(temp_encrypted_value) 
+        break
+    
+    #The Rest of the Indexes
+    for i in range(2, len(normalized_original_values)):
+        while True:
+            temp_encrypted_value = encrypt_value(normalized_original_values[i], encrypted_values[i - 1], encrypted_values[i - 2], c1Prime, c2Prime) 
+
+            # print("Encrypted: " + str(temp_denormalized_encrypted_value)) 
+            # print("Original: " + str(normalized_original_values[i])) 
+
+            encrypted_values.append(temp_encrypted_value)
+            break 
+
+    return encrypted_values
+
+def decrypt_func_raw(key, normalized_encrypted_values): 
+    decrypted_values = []
+    c1Prime, c2Prime = key_generator(key) 
+
+    #First Index
+    decrypted_values.append(decrypt_value(normalized_encrypted_values[0], y1, y2, c1Prime, c2Prime))
+    #Second Index
+    decrypted_values.append(decrypt_value(normalized_encrypted_values[1], normalized_encrypted_values[0], y1, c1Prime, c2Prime))
+
+    #The Rest of the Indexes
+    for i in range(2, len(normalized_encrypted_values)): 
+        decrypted_values.append(decrypt_value(normalized_encrypted_values[i], normalized_encrypted_values[i - 1], normalized_encrypted_values[i - 2], c1Prime, c2Prime))
+        
+    return decrypted_values
+
+
 def encrypt_decrypt_audio(key, audio_file_path):
     # Read the audio file using soundfile
     audio, samplerate = sf.read(audio_file_path)
 
-    encrypted_audio = encryptor(key, audio)
+    encrypted_audio = encrypt_func_raw(key, audio)
 
     encrypted_audio_path = "audios/encrypted/audio_" + str(uuid.uuid4()) + ".wav"
     encrypted_audio = np.array(encrypted_audio).astype(np.int16)  # Convert to numpy array before calling astype
     sf.write(encrypted_audio_path, encrypted_audio, samplerate)
 
-    decrypted_audio = decryptor(key, encrypted_audio)
+    decrypted_audio = decrypt_func_raw(key, encrypted_audio)
     decrypted_audio = np.array(decrypted_audio).astype(np.int16)  # Convert to numpy array before calling astype
 
     decrypted_audio_path = "audios/decrypted/audio_" + str(uuid.uuid4()) + ".wav"
