@@ -215,7 +215,6 @@ def decrypt_func_raw(key, normalized_encrypted_values):
     return decrypted_values
 
 
-
 def encrypt_decrypt_audio(key, audio_file_path):
     # Read the audio file using soundfile
     audio, samplerate = sf.read(audio_file_path)
